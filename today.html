@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Freid – Daily</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 700px;
+      margin: 2rem auto;
+      line-height: 1.6;
+    }
+
+    input, button {
+      font-size: 1rem;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .attempt-block {
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Freid – Daily Challenge</h1>
+
+<p id="instructions">
+  One puzzle per day. Everyone gets the same word.
+  You have six attempts.
+</p>
+
+<label for="guessInput">Enter your guess:</label><br>
+
+<input
+  id="guessInput"
+  type="text"
+  maxlength="5"
+  aria-label="Enter a 5 letter word"
+>
+
+<button id="submitBtn">Enter</button>
+
+<div id="status" aria-live="polite" style="margin-top: 1rem;"></div>
+<div id="history" aria-live="polite"></div>
+
+<p id="afterGame" style="margin-top:1.5rem;"></p>
+
+<script>
+(() => {
+  let words = [];
+  let safeWords = [];
+  let answer = "";
+  let attemptsLeft = 6;
+  let attemptNumber = 0;
+  let usedWords = new Set();
+  let gameOver = false;
+
+  const guessInput = document.getElementById("guessInput");
+  const submitBtn = document.getElementById("submitBtn");
+  const statusDiv = document.getElementById("status");
+  const historyDiv = document.getElementById("history");
+  const afterGame = document.getElementById("afterGame");
+
+  const todayKey = "freid-daily-" + getTodayString();
+
+  /* -------------------------
+     Profanity filter (answers only)
+  -------------------------- */
+  const bannedPatterns = [
+    /cunt/i, /clit/i, /orgasm/i, /fuck/i, /shit/i,
+    /bitch/i, /whore/i, /slut/i, /nigger/i,
+    /faggot/i, /rape/i, /cock/i, /dick/i,
+    /pussy/i, /asshole/i
+  ];
+
+  /* -------------------------
+     Load words
+  -------------------------- */
+  fetch("words.txt")
+    .then(res => res.text())
+    .then(text => {
+      words = text
+        .split(/\r?\n/)
+        .map(w => w.trim().toLowerCase());
+
+      safeWords = words.filter(w =>
+        !bannedPatterns.some(rx => rx.test(w))
+      );
+
+      if (safeWords.length === 0) {
+        safeWords = words;
+      }
+
+      initDailyGame();
+    })
+    .catch(() => {
+      statusDiv.textContent =
+        "Error loading word list.";
+    });
+
+  /* -------------------------
+     Daily Game Init
+  -------------------------- */
+  function initDailyGame() {
+    const stored = localStorage.getItem(todayKey);
+
+    answer = pickDailyWord();
+
+    if (stored) {
+      const data = JSON.parse(stored);
+      endGameDisplay(data.result);
+      return;
+    }
+
+    statusDiv.textContent =
+      "Daily puzzle loaded. You have 6 attempts.";
+  }
+
+  /* -------------------------
+     Deterministic daily word
+  -------------------------- */
+  function pickDailyWord() {
+    const seed = dateSeed();
+    const index = seed % safeWords.length;
+    return safeWords[index];
+  }
+
+  function dateSeed() {
+    const d = new Date();
+    return (
+      d.getFullYear() * 10000 +
+      (d.getMonth() + 1) * 100 +
+      d.getDate()
+    );
+  }
+
+  function getTodayString() {
+    const d = new Date();
+    return d.toISOString().slice(0, 10);
+  }
+
+  /* -------------------------
+     Submit Guess
+  -------------------------- */
+  function submitGuess() {
+    if (gameOver) return;
+
+    let guess = guessInput.value.toLowerCase().trim();
+
+    if (guess.length !== 5 || !words.includes(guess)) {
+      alert("please enter a valid 5-letter word");
+      return;
+    }
+
+    if (usedWords.has(guess)) {
+      alert("you have already used this word");
+      return;
+    }
+
+    usedWords.add(guess);
+    attemptNumber++;
+    attemptsLeft--;
+
+    renderFeedback(guess);
+
+    if (guess === answer) {
+      saveResult("win");
+      endGameDisplay("win");
+      return;
+    }
+
+    if (attemptsLeft === 0) {
+      saveResult("loss");
+      endGameDisplay("loss");
+      return;
+    }
+
+    statusDiv.textContent =
+      "Attempts remaining: " + attemptsLeft + ".";
+    guessInput.value = "";
+    guessInput.focus();
+  }
+
+  /* -------------------------
+     Feedback Rendering
+  -------------------------- */
+  function renderFeedback(guess) {
+    const block = document.createElement("div");
+    block.className = "attempt-block";
+
+    const header = document.createElement("strong");
+    header.textContent =
+      "Attempt " + attemptNumber + ": " + guess;
+    block.appendChild(header);
+
+    const counts = {};
+    for (let c of answer) counts[c] = (counts[c] || 0) + 1;
+
+    const result = Array(5).fill("absent");
+
+    for (let i = 0; i < 5; i++) {
+      if (guess[i] === answer[i]) {
+        result[i] = "correct";
+        counts[guess[i]]--;
+      }
+    }
+
+    for (let i = 0; i < 5; i++) {
+      if (result[i] === "absent" && counts[guess[i]] > 0) {
+        result[i] = "present in a different position";
+        counts[guess[i]]--;
+      }
+    }
+
+    for (let i = 0; i < 5; i++) {
+      const line = document.createElement("div");
+      line.textContent = guess[i] + ": " + result[i];
+      block.appendChild(line);
+    }
+
+    historyDiv.appendChild(block);
+  }
+
+  /* -------------------------
+     Save + End
+  -------------------------- */
+  function saveResult(result) {
+    localStorage.setItem(
+      todayKey,
+      JSON.stringify({
+        result,
+        attempts: attemptNumber
+      })
+    );
+  }
+
+  function endGameDisplay(result) {
+    gameOver = true;
+    guessInput.disabled = true;
+    submitBtn.disabled = true;
+
+    if (result === "win") {
+      statusDiv.textContent =
+        "Congratulations! You solved today's puzzle.";
+    } else {
+      statusDiv.textContent =
+        "No attempts left. The word was " + answer + ".";
+    }
+
+    afterGame.innerHTML =
+      `Want more? <a href="game.html">Play unlimited mode</a>.`;
+  }
+
+  submitBtn.addEventListener("click", submitGuess);
+  guessInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") submitGuess();
+  });
+
+})();
+</script>
+
+</body>
+</html>
