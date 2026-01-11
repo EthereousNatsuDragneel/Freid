@@ -35,42 +35,32 @@
 </head>
 <body>
 
-  <h1>Freid</h1>
+<h1>Freid</h1>
 
-  <p id="instructions">
-    Guess the hidden five-letter word. You have six attempts.
-    After each guess, you will receive feedback for each letter.
-  </p>
+<p id="instructions">
+  Guess the hidden five-letter word. You have six attempts.
+</p>
 
-  <label for="guessInput">Enter your guess:</label><br>
+<label for="guessInput">Enter your guess:</label><br>
 
-  <input
-    id="guessInput"
-    type="text"
-    maxlength="5"
-    aria-label="Enter a 5 letter word"
-  >
+<input
+  id="guessInput"
+  type="text"
+  maxlength="5"
+  aria-label="Enter a 5 letter word"
+>
 
-  <button id="submitBtn">Enter</button>
+<button id="submitBtn">Enter</button>
 
-  <div
-    id="status"
-    aria-live="polite"
-    style="margin-top: 1rem;"
-  ></div>
+<div id="status" aria-live="polite" style="margin-top: 1rem;"></div>
+<div id="history" aria-live="polite"></div>
 
-  <div
-    id="history"
-    aria-live="polite"
-  ></div>
-
-  <button id="newGameBtn">
-    New challenge
-  </button>
+<button id="newGameBtn">New challenge</button>
 
 <script>
 (() => {
   let words = [];
+  let safeWords = [];
   let answer = "";
   let attemptsLeft = 6;
   let attemptNumber = 0;
@@ -84,6 +74,28 @@
   const newGameBtn = document.getElementById("newGameBtn");
 
   /* -------------------------
+     Profanity filter (answers only)
+  -------------------------- */
+  const bannedPatterns = [
+    /cunt/i,
+    /clit/i,
+    /orgasm/i,
+    /frick/i,
+    /fuck/i,
+    /shit/i,
+    /bitch/i,
+    /whore/i,
+    /slut/i,
+    /nigger/i,
+    /faggot/i,
+    /rape/i,
+    /cock/i,
+    /dick/i,
+    /pussy/i,
+    /asshole/i
+  ];
+
+  /* -------------------------
      Load words.txt
   -------------------------- */
   fetch("words.txt")
@@ -91,8 +103,15 @@
     .then(text => {
       words = text
         .split(/\r?\n/)
-        .map(w => w.trim())
-        .filter(w => w.length === 5);
+        .map(w => w.trim().toLowerCase());
+
+      safeWords = words.filter(word =>
+        !bannedPatterns.some(rx => rx.test(word))
+      );
+
+      if (safeWords.length === 0) {
+        safeWords = words;
+      }
 
       startNewGame();
     })
@@ -105,7 +124,7 @@
      Start / Reset Game
   -------------------------- */
   function startNewGame() {
-    answer = words[Math.floor(Math.random() * words.length)];
+    answer = safeWords[Math.floor(Math.random() * safeWords.length)];
     attemptsLeft = 6;
     attemptNumber = 0;
     usedWords.clear();
@@ -191,7 +210,6 @@
 
     const result = Array(5).fill("absent");
 
-    // First pass: correct letters
     for (let i = 0; i < 5; i++) {
       if (guess[i] === answer[i]) {
         result[i] = "correct";
@@ -199,7 +217,6 @@
       }
     }
 
-    // Second pass: present letters
     for (let i = 0; i < 5; i++) {
       if (
         result[i] === "absent" &&
@@ -238,14 +255,12 @@
   }
 
   /* -------------------------
-     Event Listeners
+     Events
   -------------------------- */
   submitBtn.addEventListener("click", submitGuess);
 
   guessInput.addEventListener("keydown", e => {
-    if (e.key === "Enter") {
-      submitGuess();
-    }
+    if (e.key === "Enter") submitGuess();
   });
 
   newGameBtn.addEventListener("click", startNewGame);
