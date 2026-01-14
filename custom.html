@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Freid – Custom Challenge</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 700px;
+      margin: 2rem auto;
+      line-height: 1.6;
+    }
+
+    input, button {
+      font-size: 1rem;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    button {
+      margin-left: 0.5rem;
+    }
+
+    .attempt-block {
+      margin-top: 1rem;
+    }
+
+    #gameSection {
+      display: none;
+    }
+
+    #urlBox {
+      margin-top: 1rem;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Freid – Custom Challenge</h1>
+
+<!-- -------- CREATE MODE -------- -->
+<div id="createSection">
+  <p>Create a custom five-letter word puzzle.</p>
+
+  <label for="customWord">Enter a 5-letter word:</label><br>
+  <input
+    id="customWord"
+    type="text"
+    maxlength="5"
+    aria-label="Enter a 5 letter word"
+  >
+  <br>
+  <button id="generateBtn">Generate</button>
+
+  <div id="createStatus" aria-live="polite"></div>
+
+  <div id="urlBox" style="display:none;">
+    <p>Share this link:</p>
+    <div id="generatedUrl"></div>
+    <button id="copyBtn">Copy URL</button>
+  </div>
+</div>
+
+<!-- -------- GAME MODE -------- -->
+<div id="gameSection">
+  <p id="instructions">
+    Guess the hidden five-letter word. You have six attempts.
+  </p>
+
+  <label for="guessInput">Enter your guess:</label><br>
+  <input id="guessInput" type="text" maxlength="5">
+  <button id="submitBtn">Enter</button>
+
+  <div id="status" aria-live="polite" style="margin-top: 1rem;"></div>
+  <div id="history" aria-live="polite"></div>
+</div>
+
+<script>
+(() => {
+  let words = [];
+  let answer = "";
+  let attemptsLeft = 6;
+  let attemptNumber = 0;
+  let usedWords = new Set();
+  let gameOver = false;
+
+  const params = new URLSearchParams(window.location.search);
+  const encodedWord = params.get("word");
+
+  const createSection = document.getElementById("createSection");
+  const gameSection = document.getElementById("gameSection");
+
+  const customWordInput = document.getElementById("customWord");
+  const generateBtn = document.getElementById("generateBtn");
+  const createStatus = document.getElementById("createStatus");
+  const urlBox = document.getElementById("urlBox");
+  const generatedUrl = document.getElementById("generatedUrl");
+  const copyBtn = document.getElementById("copyBtn");
+
+  const guessInput = document.getElementById("guessInput");
+  const submitBtn = document.getElementById("submitBtn");
+  const statusDiv = document.getElementById("status");
+  const historyDiv = document.getElementById("history");
+
+  /* -------------------------
+     Load words.txt
+  -------------------------- */
+  fetch("words.txt")
+    .then(res => res.text())
+    .then(text => {
+      words = text
+        .split(/\r?\n/)
+        .map(w => w.trim().toLowerCase());
+
+      if (encodedWord) {
+        startGameFromUrl(encodedWord);
+      }
+    })
+    .catch(() => {
+      createStatus.textContent = "Error loading word list.";
+    });
+
+  /* -------------------------
+     Encoding helpers
+  -------------------------- */
+  function encodeWord(word) {
+    return btoa(word);
+  }
+
+  function decodeWord(encoded) {
+    try {
+      return atob(encoded);
+    } catch {
+      return null;
+    }
+  }
+
+  /* -------------------------
+     Create Mode
+  -------------------------- */
+  function genCustom() {
+    const word = customWordInput.value.toLowerCase().trim();
+
+    if (word.length !== 5) {
+      alert("Word must be exactly 5 letters.");
+      return;
+    }
+
+    if (!words.includes(word)) {
+      alert("Word must be a valid word in English.");
+      return;
+    }
+
+    const encoded = encodeWord(word);
+    const url =
+      location.origin +
+      location.pathname +
+      "?word=" +
+      encodeURIComponent(encoded);
+
+    generatedUrl.textContent = url;
+    urlBox.style.display = "block";
+    createStatus.textContent = "Custom puzzle created.";
+  }
+
+  generateBtn.addEventListener("click", genCustom);
+
+  customWordInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") genCustom();
+  });
+
+  copyBtn.addEventListener("click", () => {
+    navigator.clipboard.writeText(generatedUrl.textContent);
+    alert("URL copied to clipboard.");
+  });
+
+  /* -------------------------
+     Start Game From URL
+  -------------------------- */
+  function startGameFromUrl(encoded) {
+    const decoded = decodeWord(encoded);
+
+    if (!decoded || decoded.length !== 5 || !words.includes(decoded)) {
+      document.body.innerHTML =
+        "<p>Invalid or corrupted puzzle link.</p>";
+      return;
+    }
+
+    // reset state
+    answer = decoded;
+    attemptsLeft = 6;
+    attemptNumber = 0;
+    usedWords.clear();
+    gameOver = false;
+
+    createSection.style.display = "none";
+    gameSection.style.display = "block";
+
+    statusDiv.textContent =
+      "Custom puzzle loaded. You have 6 attempts.";
+  }
+
+  /* -------------------------
+     Submit Guess
+  -------------------------- */
+  function submitGuess() {
+    if (gameOver) return;
+
+    const guess = guessInput.value.toLowerCase().trim();
+
+    if (guess.length !== 5 || !words.includes(guess)) {
+      alert("Please enter a valid 5-letter word.");
+      return;
+    }
+
+    if (usedWords.has(guess)) {
+      alert("You already used this word.");
+      return;
+    }
+
+    usedWords.add(guess);
+    attemptNumber++;
+    attemptsLeft--;
+
+    renderFeedback(guess);
+
+    if (guess === answer) {
+      statusDiv.textContent =
+        "Correct! You solved the puzzle.";
+      endGame();
+      return;
+    }
+
+    if (attemptsLeft === 0) {
+      statusDiv.textContent =
+        "No attempts left. The word was " + answer + ".";
+      endGame();
+      return;
+    }
+
+    statusDiv.textContent =
+      "Attempts remaining: " + attemptsLeft + ".";
+    guessInput.value = "";
+    guessInput.focus();
+  }
+
+  function endGame() {
+    gameOver = true;
+    guessInput.disabled = true;
+    submitBtn.disabled = true;
+  }
+
+  /* -------------------------
+     Feedback Rendering
+  -------------------------- */
+  function renderFeedback(guess) {
+    const block = document.createElement("div");
+    block.className = "attempt-block";
+
+    const header = document.createElement("strong");
+    header.textContent =
+      "Attempt " + attemptNumber + ": " + guess;
+    block.appendChild(header);
+
+    const counts = {};
+    for (let c of answer) counts[c] = (counts[c] || 0) + 1;
+
+    const result = Array(5).fill("absent");
+
+    for (let i = 0; i < 5; i++) {
+      if (guess[i] === answer[i]) {
+        result[i] = "correct";
+        counts[guess[i]]--;
+      }
+    }
+
+    for (let i = 0; i < 5; i++) {
+      if (result[i] === "absent" && counts[guess[i]] > 0) {
+        result[i] = "present in a different position";
+        counts[guess[i]]--;
+      }
+    }
+
+    for (let i = 0; i < 5; i++) {
+      const line = document.createElement("div");
+      line.textContent =
+        guess[i] + ": " + result[i];
+      block.appendChild(line);
+    }
+
+    historyDiv.appendChild(block);
+  }
+
+  submitBtn.addEventListener("click", submitGuess);
+  guessInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") submitGuess();
+  });
+
+})();
+</script>
+
+</body>
+</html>
