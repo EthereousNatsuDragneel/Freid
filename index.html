@@ -56,11 +56,20 @@
 <span id="visit-count">…</span>
 
 <script>
-fetch('https://YOURNAME.goatcounter.com/counter/TOTAL.json')
-  .then(res => res.json())
+fetch('https://ethereousnatsudragneel.goatcounter.com/counter/TOTAL.json')
+  .then(res => {
+    if (!res.ok) {
+      throw new Error("HTTP error " + res.status);
+    }
+    return res.json();
+  })
   .then(data => {
     document.getElementById('visit-count').textContent =
       data.count.toLocaleString();
+  })
+  .catch(err => {
+    console.error("GoatCounter error:", err);
+    document.getElementById('visit-count').textContent = "N/A";
   });
 </script>
 
