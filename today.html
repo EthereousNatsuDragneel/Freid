@@ -3,33 +3,29 @@
 <head>
 <script data-goatcounter="https://ethereousnatsudragneel.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
-  <meta charset="UTF-8">
-  <title>Freid – Today's Challenge</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<title>Freid – Today's Challenge</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <style>
-    body {
-      font-family: sans-serif;
-      max-width: 700px;
-      margin: 2rem auto;
-      line-height: 1.6;
-    }
+<style>
+  body {
+    font-family: sans-serif;
+    max-width: 700px;
+    margin: 2rem auto;
+    line-height: 1.6;
+  }
 
-    input, button {
-      font-size: 1rem;
-      padding: 0.5rem;
-      margin-top: 0.5rem;
-    }
+  input, button {
+    font-size: 1rem;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+  }
 
-    .attempt-block {
-      margin-top: 1rem;
-    }
-
-    #streak {
-      margin-top: 1rem;
-      font-weight: bold;
-    }
-  </style>
+  #streak {
+    margin-top: 1rem;
+    font-weight: bold;
+  }
+</style>
 </head>
 <body>
 
@@ -40,22 +36,37 @@
   You have six attempts.
 </p>
 
-<div id="streak" aria-live="polite"></div>
+<div id="streak"></div>
+
+<div id="history">
+  <h2 id="attempt1"></h2>
+  <p id="attempt1feedback" aria-live="polite"></p>
+
+  <h2 id="attempt2"></h2>
+  <p id="attempt2feedback" aria-live="polite"></p>
+
+  <h2 id="attempt3"></h2>
+  <p id="attempt3feedback" aria-live="polite"></p>
+
+  <h2 id="attempt4"></h2>
+  <p id="attempt4feedback" aria-live="polite"></p>
+
+  <h2 id="attempt5"></h2>
+  <p id="attempt5feedback" aria-live="polite"></p>
+
+  <h2 id="attempt6"></h2>
+  <p id="attempt6feedback" aria-live="polite"></p>
+</div>
+
+<div id="status" style="margin-top:1rem;"></div>
+<p id="afterGame" style="margin-top:1.5rem;"></p>
 
 <label for="guessInput">Enter your guess:</label><br>
 <input id="guessInput" type="text" maxlength="5" aria-label="Enter a 5 letter word">
 <button id="submitBtn">Enter</button>
 
-<div id="status" aria-live="polite" style="margin-top:1rem;"></div>
-<div id="history" aria-live="polite"></div>
-
-<p id="afterGame" style="margin-top:1.5rem;"></p>
-
 <script>
 (() => {
-  /* ===============================
-     MOCK DATE TOGGLE (TESTING)
-     =============================== */
   const USE_MOCK_DATE = false;
   function getNow() {
     return USE_MOCK_DATE
@@ -74,9 +85,8 @@
   const guessInput = document.getElementById("guessInput");
   const submitBtn = document.getElementById("submitBtn");
   const statusDiv = document.getElementById("status");
-  const historyDiv = document.getElementById("history");
-  const afterGame = document.getElementById("afterGame");
   const streakDiv = document.getElementById("streak");
+  const afterGame = document.getElementById("afterGame");
 
   const today = getTodayString();
   const todayResultKey = "freid-daily-result-" + today;
@@ -120,7 +130,6 @@
     statusDiv.textContent = "Today's puzzle loaded. You have 6 attempts.";
   }
 
-  /* ===== FIXED STREAK ALERT ===== */
   function enforceStreakDecay() {
     const data = JSON.parse(localStorage.getItem(streakKey) || "{}");
 
@@ -197,36 +206,32 @@
   }
 
   function renderFeedback(guess) {
-    const block = document.createElement("div");
-    block.className = "attempt-block";
-    block.innerHTML = `<strong>Attempt ${attemptNumber}: ${guess}</strong>`;
+    const header = document.getElementById("attempt" + attemptNumber);
+    const feedback = document.getElementById("attempt" + attemptNumber + "feedback");
 
-    const counts = {};
-    for (let c of answer) counts[c] = (counts[c] || 0) + 1;
+    header.textContent = "Attempt " + attemptNumber + ": " + guess;
 
-    const result = Array(5).fill("absent");
-
-    for (let i = 0; i < 5; i++) {
-      if (guess[i] === answer[i]) {
-        result[i] = "correct";
-        counts[guess[i]]--;
-      }
+    const letterCounts = {};
+    for (let c of answer) {
+      letterCounts[c] = (letterCounts[c] || 0) + 1;
     }
 
+    const lines = [];
+
     for (let i = 0; i < 5; i++) {
-      if (result[i] === "absent" && counts[guess[i]] > 0) {
-        result[i] = "present in a different position";
-        counts[guess[i]]--;
+      const result =
+        guess[i] === answer[i] ? "correct." :
+        letterCounts[guess[i]] > 0 ? "present in another position." :
+        "absent.";
+
+      if (guess[i] === answer[i] || letterCounts[guess[i]] > 0) {
+        letterCounts[guess[i]]--;
       }
+
+      lines.push(guess[i] + ": " + result);
     }
 
-    result.forEach((r, i) => {
-      const line = document.createElement("div");
-      line.textContent = `${guess[i]}: ${r}`;
-      block.appendChild(line);
-    });
-
-    historyDiv.appendChild(block);
+    feedback.innerHTML = lines.join("<br>");
   }
 
   function saveState() {
@@ -234,7 +239,7 @@
       attemptsLeft,
       attemptNumber,
       usedWords: [...usedWords],
-      historyHTML: historyDiv.innerHTML,
+      historyHTML: document.getElementById("history").innerHTML,
       gameOver
     }));
   }
@@ -243,7 +248,7 @@
     attemptsLeft = state.attemptsLeft;
     attemptNumber = state.attemptNumber;
     usedWords = new Set(state.usedWords);
-    historyDiv.innerHTML = state.historyHTML;
+    document.getElementById("history").innerHTML = state.historyHTML;
     gameOver = state.gameOver;
     statusDiv.textContent = "Attempts remaining: " + attemptsLeft;
   }
