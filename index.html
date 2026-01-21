@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script data-goatcounter="https://ethereousnatsudragneel.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
   <meta charset="UTF-8">
   <title>Freid – Unlimited Word Game</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -50,6 +52,17 @@
       Make Your Own Puzzle
     </button>
   </a>
+
+<span id="visit-count">…</span>
+
+<script>
+fetch('https://YOURNAME.goatcounter.com/counter/TOTAL.json')
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById('visit-count').textContent =
+      data.count.toLocaleString();
+  });
+</script>
 
 </body>
 </html>
