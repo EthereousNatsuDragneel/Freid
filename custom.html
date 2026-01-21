@@ -37,6 +37,15 @@
       margin-top: 1rem;
       word-break: break-all;
     }
+
+    /* Visually hidden but screen-reader accessible */
+    #liveFeedback {
+      position: absolute;
+      left: -10000px;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+    }
   </style>
 </head>
 <body>
@@ -72,12 +81,18 @@
     Guess the hidden five-letter word. You have six attempts.
   </p>
 
+  <div id="status" style="margin-top: 1rem;"></div>
+  <div id="history"></div>
+
+  <!-- Persistent live region -->
+  <div id="liveFeedback"
+       role="status"
+       aria-live="assertive"
+       aria-atomic="true"></div>
+
   <label for="guessInput">Enter your guess:</label><br>
   <input id="guessInput" type="text" maxlength="5">
   <button id="submitBtn">Enter</button>
-
-  <div id="status" aria-live="polite" style="margin-top: 1rem;"></div>
-  <div id="history" aria-live="polite"></div>
 </div>
 
 <script>
@@ -106,10 +121,15 @@
   const submitBtn = document.getElementById("submitBtn");
   const statusDiv = document.getElementById("status");
   const historyDiv = document.getElementById("history");
+  const liveFeedback = document.getElementById("liveFeedback");
 
-  /* -------------------------
-     Load words.txt
-  -------------------------- */
+  function announce(msg) {
+    liveFeedback.textContent = "";
+    setTimeout(() => {
+      liveFeedback.textContent = msg;
+    }, 50);
+  }
+
   fetch("words.txt")
     .then(res => res.text())
     .then(text => {
@@ -125,9 +145,6 @@
       createStatus.textContent = "Error loading word list.";
     });
 
-  /* -------------------------
-     Encoding helpers
-  -------------------------- */
   function encodeWord(word) {
     return btoa(word);
   }
@@ -140,9 +157,6 @@
     }
   }
 
-  /* -------------------------
-     Create Mode
-  -------------------------- */
   function genCustom() {
     const word = customWordInput.value.toLowerCase().trim();
 
@@ -169,7 +183,6 @@
   }
 
   generateBtn.addEventListener("click", genCustom);
-
   customWordInput.addEventListener("keydown", e => {
     if (e.key === "Enter") genCustom();
   });
@@ -179,9 +192,6 @@
     alert("URL copied to clipboard.");
   });
 
-  /* -------------------------
-     Start Game From URL
-  -------------------------- */
   function startGameFromUrl(encoded) {
     const decoded = decodeWord(encoded);
 
@@ -191,7 +201,6 @@
       return;
     }
 
-    // reset state
     answer = decoded;
     attemptsLeft = 6;
     attemptNumber = 0;
@@ -203,11 +212,9 @@
 
     statusDiv.textContent =
       "Custom puzzle loaded. You have 6 attempts.";
+    announce("Custom puzzle loaded. You have six attempts.");
   }
 
-  /* -------------------------
-     Submit Guess
-  -------------------------- */
   function submitGuess() {
     if (gameOver) return;
 
@@ -232,6 +239,7 @@
     if (guess === answer) {
       statusDiv.textContent =
         "Correct! You solved the puzzle.";
+      announce("Correct. You solved the puzzle.");
       endGame();
       return;
     }
@@ -239,6 +247,7 @@
     if (attemptsLeft === 0) {
       statusDiv.textContent =
         "No attempts left. The word was " + answer + ".";
+      announce("No attempts left. The word was " + answer + ".");
       endGame();
       return;
     }
@@ -255,14 +264,11 @@
     submitBtn.disabled = true;
   }
 
-  /* -------------------------
-     Feedback Rendering
-  -------------------------- */
   function renderFeedback(guess) {
     const block = document.createElement("div");
     block.className = "attempt-block";
 
-    const header = document.createElement("strong");
+    const header = document.createElement("h2");
     header.textContent =
       "Attempt " + attemptNumber + ": " + guess;
     block.appendChild(header);
@@ -286,14 +292,18 @@
       }
     }
 
+    let spoken = [];
+
     for (let i = 0; i < 5; i++) {
       const line = document.createElement("div");
       line.textContent =
         guess[i] + ": " + result[i];
       block.appendChild(line);
+      spoken.push(guess[i] + ": " + result[i]);
     }
 
     historyDiv.appendChild(block);
+    announce(spoken.join(". "));
   }
 
   submitBtn.addEventListener("click", submitGuess);

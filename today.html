@@ -3,33 +3,42 @@
 <head>
 <script data-goatcounter="https://ethereousnatsudragneel.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
-  <meta charset="UTF-8">
-  <title>Freid – Today's Challenge</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<title>Freid – Today's Challenge</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <style>
-    body {
-      font-family: sans-serif;
-      max-width: 700px;
-      margin: 2rem auto;
-      line-height: 1.6;
-    }
+<style>
+  body {
+    font-family: sans-serif;
+    max-width: 700px;
+    margin: 2rem auto;
+    line-height: 1.6;
+  }
 
-    input, button {
-      font-size: 1rem;
-      padding: 0.5rem;
-      margin-top: 0.5rem;
-    }
+  input, button {
+    font-size: 1rem;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+  }
 
-    .attempt-block {
-      margin-top: 1rem;
-    }
+  .attempt-block {
+    margin-top: 1rem;
+  }
 
-    #streak {
-      margin-top: 1rem;
-      font-weight: bold;
-    }
-  </style>
+  #streak {
+    margin-top: 1rem;
+    font-weight: bold;
+  }
+
+  /* Visually hidden but screen-reader accessible */
+  #liveFeedback {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+</style>
 </head>
 <body>
 
@@ -42,20 +51,22 @@
 
 <div id="streak" aria-live="polite"></div>
 
+<div id="status" style="margin-top:1rem;"></div>
+<div id="history"></div>
+<p id="afterGame" style="margin-top:1.5rem;"></p>
+
+<!-- Persistent live region -->
+<div id="liveFeedback"
+     role="status"
+     aria-live="assertive"
+     aria-atomic="true"></div>
+
 <label for="guessInput">Enter your guess:</label><br>
 <input id="guessInput" type="text" maxlength="5" aria-label="Enter a 5 letter word">
 <button id="submitBtn">Enter</button>
 
-<div id="status" aria-live="polite" style="margin-top:1rem;"></div>
-<div id="history" aria-live="polite"></div>
-
-<p id="afterGame" style="margin-top:1.5rem;"></p>
-
 <script>
 (() => {
-  /* ===============================
-     MOCK DATE TOGGLE (TESTING)
-     =============================== */
   const USE_MOCK_DATE = false;
   function getNow() {
     return USE_MOCK_DATE
@@ -77,6 +88,7 @@
   const historyDiv = document.getElementById("history");
   const afterGame = document.getElementById("afterGame");
   const streakDiv = document.getElementById("streak");
+  const liveFeedback = document.getElementById("liveFeedback");
 
   const today = getTodayString();
   const todayResultKey = "freid-daily-result-" + today;
@@ -89,6 +101,13 @@
     /faggot/i, /rape/i, /cock/i, /dick/i,
     /pussy/i, /asshole/i
   ];
+
+  function announce(msg) {
+    liveFeedback.textContent = "";
+    setTimeout(() => {
+      liveFeedback.textContent = msg;
+    }, 50);
+  }
 
   fetch("words.txt")
     .then(r => r.text())
@@ -120,7 +139,6 @@
     statusDiv.textContent = "Today's puzzle loaded. You have 6 attempts.";
   }
 
-  /* ===== FIXED STREAK ALERT ===== */
   function enforceStreakDecay() {
     const data = JSON.parse(localStorage.getItem(streakKey) || "{}");
 
@@ -199,7 +217,10 @@
   function renderFeedback(guess) {
     const block = document.createElement("div");
     block.className = "attempt-block";
-    block.innerHTML = `<strong>Attempt ${attemptNumber}: ${guess}</strong>`;
+
+    const header = document.createElement("h2");
+    header.textContent = `Attempt ${attemptNumber}: ${guess}`;
+    block.appendChild(header);
 
     const counts = {};
     for (let c of answer) counts[c] = (counts[c] || 0) + 1;
@@ -220,13 +241,17 @@
       }
     }
 
+    const spoken = [];
+
     result.forEach((r, i) => {
       const line = document.createElement("div");
       line.textContent = `${guess[i]}: ${r}`;
       block.appendChild(line);
+      spoken.push(`${guess[i]}: ${r}`);
     });
 
     historyDiv.appendChild(block);
+    announce(spoken.join(". "));
   }
 
   function saveState() {
