@@ -21,22 +21,9 @@
     margin-top: 0.5rem;
   }
 
-  .attempt-block {
-    margin-top: 1rem;
-  }
-
   #streak {
     margin-top: 1rem;
     font-weight: bold;
-  }
-
-  /* Visually hidden but screen-reader accessible */
-  #liveFeedback {
-    position: absolute;
-    left: -10000px;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
   }
 </style>
 </head>
@@ -49,17 +36,30 @@
   You have six attempts.
 </p>
 
-<div id="streak" aria-live="polite"></div>
+<div id="streak"></div>
+
+<div id="history">
+  <h2 id="attempt1"></h2>
+  <p id="attempt1feedback" aria-live="polite"></p>
+
+  <h2 id="attempt2"></h2>
+  <p id="attempt2feedback" aria-live="polite"></p>
+
+  <h2 id="attempt3"></h2>
+  <p id="attempt3feedback" aria-live="polite"></p>
+
+  <h2 id="attempt4"></h2>
+  <p id="attempt4feedback" aria-live="polite"></p>
+
+  <h2 id="attempt5"></h2>
+  <p id="attempt5feedback" aria-live="polite"></p>
+
+  <h2 id="attempt6"></h2>
+  <p id="attempt6feedback" aria-live="polite"></p>
+</div>
 
 <div id="status" style="margin-top:1rem;"></div>
-<div id="history"></div>
 <p id="afterGame" style="margin-top:1.5rem;"></p>
-
-<!-- Persistent live region -->
-<div id="liveFeedback"
-     role="status"
-     aria-live="assertive"
-     aria-atomic="true"></div>
 
 <label for="guessInput">Enter your guess:</label><br>
 <input id="guessInput" type="text" maxlength="5" aria-label="Enter a 5 letter word">
@@ -85,10 +85,8 @@
   const guessInput = document.getElementById("guessInput");
   const submitBtn = document.getElementById("submitBtn");
   const statusDiv = document.getElementById("status");
-  const historyDiv = document.getElementById("history");
-  const afterGame = document.getElementById("afterGame");
   const streakDiv = document.getElementById("streak");
-  const liveFeedback = document.getElementById("liveFeedback");
+  const afterGame = document.getElementById("afterGame");
 
   const today = getTodayString();
   const todayResultKey = "freid-daily-result-" + today;
@@ -101,13 +99,6 @@
     /faggot/i, /rape/i, /cock/i, /dick/i,
     /pussy/i, /asshole/i
   ];
-
-  function announce(msg) {
-    liveFeedback.textContent = "";
-    setTimeout(() => {
-      liveFeedback.textContent = msg;
-    }, 50);
-  }
 
   fetch("words.txt")
     .then(r => r.text())
@@ -215,43 +206,32 @@
   }
 
   function renderFeedback(guess) {
-    const block = document.createElement("div");
-    block.className = "attempt-block";
+    const header = document.getElementById("attempt" + attemptNumber);
+    const feedback = document.getElementById("attempt" + attemptNumber + "feedback");
 
-    const header = document.createElement("h2");
-    header.textContent = `Attempt ${attemptNumber}: ${guess}`;
-    block.appendChild(header);
+    header.textContent = "Attempt " + attemptNumber + ": " + guess;
 
-    const counts = {};
-    for (let c of answer) counts[c] = (counts[c] || 0) + 1;
-
-    const result = Array(5).fill("absent");
-
-    for (let i = 0; i < 5; i++) {
-      if (guess[i] === answer[i]) {
-        result[i] = "correct";
-        counts[guess[i]]--;
-      }
+    const letterCounts = {};
+    for (let c of answer) {
+      letterCounts[c] = (letterCounts[c] || 0) + 1;
     }
 
+    const lines = [];
+
     for (let i = 0; i < 5; i++) {
-      if (result[i] === "absent" && counts[guess[i]] > 0) {
-        result[i] = "present in a different position";
-        counts[guess[i]]--;
+      const result =
+        guess[i] === answer[i] ? "correct." :
+        letterCounts[guess[i]] > 0 ? "present in another position." :
+        "absent.";
+
+      if (guess[i] === answer[i] || letterCounts[guess[i]] > 0) {
+        letterCounts[guess[i]]--;
       }
+
+      lines.push(guess[i] + ": " + result);
     }
 
-    const spoken = [];
-
-    result.forEach((r, i) => {
-      const line = document.createElement("div");
-      line.textContent = `${guess[i]}: ${r}`;
-      block.appendChild(line);
-      spoken.push(`${guess[i]}: ${r}`);
-    });
-
-    historyDiv.appendChild(block);
-    announce(spoken.join(". "));
+    feedback.innerHTML = lines.join("<br>");
   }
 
   function saveState() {
@@ -259,7 +239,7 @@
       attemptsLeft,
       attemptNumber,
       usedWords: [...usedWords],
-      historyHTML: historyDiv.innerHTML,
+      historyHTML: document.getElementById("history").innerHTML,
       gameOver
     }));
   }
@@ -268,7 +248,7 @@
     attemptsLeft = state.attemptsLeft;
     attemptNumber = state.attemptNumber;
     usedWords = new Set(state.usedWords);
-    historyDiv.innerHTML = state.historyHTML;
+    document.getElementById("history").innerHTML = state.historyHTML;
     gameOver = state.gameOver;
     statusDiv.textContent = "Attempts remaining: " + attemptsLeft;
   }

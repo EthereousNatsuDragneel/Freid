@@ -47,16 +47,5 @@
       Make Your Own Puzzle
   </a>
 
-<span id="visit-count">…</span>
-
-<script>
-fetch('https://YOURNAME.goatcounter.com/counter/TOTAL.json')
-  .then(res => res.json())
-  .then(data => {
-    document.getElementById('visit-count').textContent =
-      data.count.toLocaleString();
-  });
-</script>
-
 </body>
 </html>
