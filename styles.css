@@ -1,0 +1,139 @@
+/* ===============================
+   Global base
+   =============================== */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+  line-height: 1.6;
+  color: #000;
+  background: #fff;
+}
+
+/* ===============================
+   Typography & spacing
+   =============================== */
+
+h1 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+h2 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+p {
+  margin-bottom: 1rem;
+}
+
+/* ===============================
+   Links (homepage & general)
+   =============================== */
+
+a {
+  display: inline-block;
+  margin: 0.5rem 0.75rem 0.5rem 0;
+  padding: 0.75rem 1.25rem;
+  text-decoration: none;
+  border: 2px solid #444;
+  border-radius: 6px;
+  color: #000;
+}
+
+a:hover,
+a:focus {
+  background-color: #eee;
+  outline: none;
+}
+
+/* ===============================
+   Buttons
+   =============================== */
+
+button {
+  font-size: 1rem;
+  padding: 0.75rem 1.25rem;
+  margin-top: 0.75rem;
+  border-radius: 6px;
+  border: 2px solid #333;
+  background: #f5f5f5;
+  color: #000;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #eaeaea;
+}
+
+button:focus {
+  outline: 3px solid #000;
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ===============================
+   Inputs
+   =============================== */
+
+input[type="text"] {
+  font-size: 1rem;
+  padding: 0.6rem;
+  margin-top: 0.5rem;
+  border-radius: 4px;
+  border: 2px solid #333;
+  width: 100%;
+  max-width: 320px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+input:focus {
+  outline: 3px solid #000;
+  outline-offset: 2px;
+}
+
+/* ===============================
+   Game history & grouping
+   =============================== */
+
+#history {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+}
+
+/* ===============================
+   Status & feedback text
+   =============================== */
+
+#status,
+#createStatus,
+#streak {
+  margin-top: 1rem;
+  font-weight: 600;
+}
+
+#urlBox {
+  margin-top: 1rem;
+  word-break: break-all;
+}
+
+/* ===============================
+   Utility
+   =============================== */
+
+[hidden] {
+  display: none !important;
+}
