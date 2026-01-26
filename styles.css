@@ -131,6 +131,29 @@ input:focus {
 }
 
 /* ===============================
+   Community section (NEW)
+   =============================== */
+
+hr {
+  margin: 2.5rem 0;
+  border: none;
+  border-top: 2px solid #ddd;
+}
+
+section {
+  margin-bottom: 2rem;
+}
+
+section ul {
+  margin-left: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+section li {
+  margin-bottom: 0.4rem;
+}
+
+/* ===============================
    Utility
    =============================== */
 
